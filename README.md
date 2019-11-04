@@ -12,3 +12,7 @@ git clone git@bitbucket.org:umd-lib/scpa-scores-core.git scpa-scores
 
 Solr version prior to 5.x also requires the core to be added to the `solr.xml`
 file.
+
+## License
+
+See the [LICENSE](LICENSE.txt) file for license rights and limitations.
