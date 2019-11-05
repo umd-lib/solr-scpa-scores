@@ -1,7 +1,7 @@
 #!/bin/bash
 
 file_name=$1
-dos2unix $file_name
+dos2unix -f --newfile $file_name $file_name.unix
 rm scpa-scores.csv
 
 if [ "$2" =  "add-header" ]; then
@@ -48,6 +48,7 @@ sed -i.bak 's/\ *$//g' instr
 # Copy all fields except instrumentation to a new file
 csvcut -c id,additional_info,call_number,collation,collection,composer,difficulty,duration,ensemble_description,ensemble_size,fair_use,imprint,pages,solo_difficulty,special,title scpa-scores.csv > others
 
-# Joint instrumentation and other fields
-csvjoin others instr > clean.csv
+# Join instrumentation and other fields
+# Using "--no-inference" flag, so zero-padded id field doesn't lose padded zeros.
+csvjoin --no-inference others instr > clean.csv
 
