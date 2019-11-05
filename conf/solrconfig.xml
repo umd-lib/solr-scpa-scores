@@ -985,6 +985,24 @@
        </lst>
        -->
   </requestHandler>
+  
+  <updateRequestProcessorChain name="script">
+    <processor class="solr.StatelessScriptUpdateProcessorFactory">
+      <str name="script">update-script.js</str>
+    </processor>
+    <lst name="defaults">
+        <str name="update.chain">script</str>
+        <str name="stream.contentType">application/csv</str>
+        <bool name="f.instrumentation.split">true</bool>
+        <str name="f.instrumentation.separator">,</str>
+
+        <bool name="f.special.split">true</bool>
+        <str name="f.special.separator">|</str>
+    </lst>
+
+    <processor class="solr.LogUpdateProcessorFactory" />
+    <processor class="solr.RunUpdateProcessorFactory" />
+  </updateRequestProcessorChain>
 
   <!-- Solr Cell Update Request Handler
 
