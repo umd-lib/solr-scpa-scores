@@ -8,7 +8,7 @@ USER root
 RUN apt-get update -y && \
     apt-get install -y xmlstarlet && \
     apt-get install -y dos2unix && \
-    apt-get install -y python-dev python-pip python-setuptools build-essential && \
+    apt-get install -y python3-dev python-dev python-pip python-setuptools build-essential && \
     pip install csvkit
 
 # Set the SOLR_HOME directory env variable
@@ -23,10 +23,14 @@ RUN mkdir -p /apps/solr/ && \
 # Add the data to be loaded
 ADD data.csv /tmp/data.csv
 
-# Add and run "cleanup" script
+# Add and run cleanup.sh
 ADD scripts/cleanup.sh /tmp/cleanup.sh
 RUN chmod 755 /tmp/cleanup.sh
-RUN cd /tmp && ./cleanup.sh data.csv
+RUN cd /tmp && ./cleanup.sh data.csv add-header
+
+# Add and run cleanup.py
+ADD scripts/cleanup.py /tmp/cleanup.py
+RUN cd /tmp && mv clean.csv clean.csv.bak && python3 cleanup.py clean.csv.bak clean.csv
 
 # Switch back to solr user
 USER solr
