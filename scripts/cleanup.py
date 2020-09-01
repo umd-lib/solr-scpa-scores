@@ -14,7 +14,29 @@ import re
 fieldnames = ['id', 'composer', 'title', 'imprint', 'instrumentation',
               'collation', 'additional_info', 'collection', 'call_number',
               'duration', 'solo_difficulty', 'difficulty', 'pages',
-              'ensemble_description', 'ensemble_size', 'fair_use', 'special']
+              'ensemble_description', 'ensemble_size', 'fair_use', 'special',
+              'collection_dictionary', 'collection_sorted_dictionary']
+
+collection_dict = {
+    "ICA": "001::International Clarinet Association (ICA) Score Collection",
+    "NACWPI": "002::National Association of College Wind and Percussion Instructors (NACWPI) Score Collection",
+    "Stevens": "003::Milton Stevens Collection",
+    "ABA": "004::American Bandmasters Association (ABA) Score Collection",
+    "ABA - Banda Mexicana": "005::ABA - J.E. Roach Banda Mexicana Music Collection",
+    "ABA - William Hill": "006::ABA - William Hill Collection",
+    "ABA - King": "007::ABA - Karl King Scores",
+    "ABA - Mayhew Lake": '008::ABA - Mayhew Lake "Symphony in Gold" Collection',
+    "ABA - Reed": "009::ABA - Alfred Reed Collection",
+    "ABA - Star Music Co": "010::ABA - Star Music Company Collection",
+    "20th/21st Century Consort": "011::20th/21st Century Consort Collection",
+    "Stephen Albert": "012::Stephen Albert Collection",
+    "Harold Brown": "013::Harold Brown Collection",
+    "CMP": "014::Contemporary Music Project (NAfME/MENC) Scores",
+    "Lynn Steele": "015::Lynn Steele Collection",
+    "George Tremblay": "016::George Tremblay Collection",
+    "Philip Gordon": "017::Philip Gordon Papers",
+    "VdGSA": "018::Viola da Gamba Society of America Archives"
+}
 
 p_multipipe = re.compile(r'\|+')
 p_multispace = re.compile(r' *\| *')
@@ -86,6 +108,20 @@ if __name__ == '__main__':
                         new_value = "missing title"
                         warn('title', 'is empty')
                         is_valid = False
+
+                if field == 'collection':
+                    if new_value in collection_dict:
+                        csd = collection_dict[new_value]
+                        cd = csd.split('::')[1]
+                    else:
+                        csd, cd = '', ''
+                        if new_value != "":
+                            warn('collection', f'unknown value {new_value}')
+                            is_valid = False
+
+                    # add new fields
+                    row['collection_dictionary'] = cd
+                    row['collection_sorted_dictionary'] = csd
 
                 if field == 'instrumentation':
                     # Remove in-between spaces in instrumentation

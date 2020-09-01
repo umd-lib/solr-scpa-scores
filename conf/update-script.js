@@ -6,28 +6,6 @@
 
   See http://wiki.apache.org/solr/ScriptUpdateProcessor for more details.
 */
-// Collection database enry : display value map
-var collection_sorted_dictionary = {
-    "ICA":"001::International Clarinet Association (ICA) Score Collection",
-    "NACWPI":"002::National Association of College Wind and Percussion Instructors (NACWPI) Score Collection",
-    "Stevens":"003::Milton Stevens Collection",
-    "ABA":"004::American Bandmasters Association (ABA) Score Collection",
-    "ABA - Banda Mexicana":"005::ABA - J.E. Roach Banda Mexicana Music Collection",
-    "ABA - William Hill":"006::ABA - William Hill Collection",
-    "ABA - King":"007::ABA - Karl King Scores",
-    "ABA - Mayhew Lake":"008::ABA - Mayhew Lake \"Symphony in Gold\" Collection",
-    "ABA - Reed":"009::ABA - Alfred Reed Collection",
-    "ABA - Star Music Co":"010::ABA - Star Music Company Collection",
-    "20th/21st Century Consort":"011::20th/21st Century Consort Collection",
-    "Stephen Albert":"012::Stephen Albert Collection",
-    "Harold Brown":"013::Harold Brown Collection",
-    "CMP":"014::Contemporary Music Project (NAfME/MENC) Scores",
-    "Lynn Steele":"015::Lynn Steele Collection",
-    "George Tremblay":"016::George Tremblay Collection",
-    "Philip Gordon":"017::Philip Gordon Papers",
-    "VdGSA":"018::Viola da Gamba Society of America Archives"
-};
-
 // Instrument code - label map
 var instrument_dictionary = {
     "any":"any instrument",
@@ -181,25 +159,6 @@ function processAdd(cmd) {
     logger.info("update-script#processAdd: id=" + id);
 
     var instrument_field_name = "instrumentation";
-    var collection_field_name = "collection";
-
-    collection_value = doc.getFieldValue(collection_field_name);
-    if(collection_value != null) {
-        // Add sorted collection dictionay field
-        var field_name = "collection_dictionary";
-        var sorted_field_name = "collection_sorted_dictionary";
-        if(collection_value in collection_sorted_dictionary) {
-            doc.addField(field_name, collection_sorted_dictionary[collection_value].substr(5));
-            logger.debug("update-script#Added: " + field_name + "=" + collection_sorted_dictionary[collection_value]);
-            doc.addField(sorted_field_name, collection_sorted_dictionary[collection_value]);
-            logger.debug("update-script#Added: " + sorted_field_name + "=" + collection_sorted_dictionary[collection_value]);
-        } else {
-            doc.addField(field_name, collection_value);
-            logger.debug("update-script#Added: " + field_name + "=" + collection_value + "(WARN: NOT IN DICTIONARY)");
-            doc.addField(sorted_field_name, collection_value + "::" + collection_value);
-            logger.debug("update-script#Added: " + sorted_field_name + "=" + collection_value + "(WARN: NOT IN DICTIONARY)");
-        }
-    }
 
     instrumentation_value = doc.getFieldValues(instrument_field_name);
     if(instrumentation_value != null) {
