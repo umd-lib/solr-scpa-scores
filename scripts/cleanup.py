@@ -4,6 +4,13 @@ import csv
 import sys
 import re
 
+# Process a SCPA Scores Collection CSV file:
+#
+# - validate the input data and report problems
+# - add the header
+# - cleanup the input data
+# - generate new columns for indexing
+
 fieldnames = ['id', 'composer', 'title', 'imprint', 'instrumentation',
               'collation', 'additional_info', 'collection', 'call_number',
               'duration', 'solo_difficulty', 'difficulty', 'pages',
@@ -14,10 +21,10 @@ p_multispace = re.compile(r' *\| *')
 p_trailingpipe = re.compile(r'\|$')
 
 if __name__ == '__main__':
-    def warn(msg):
+    def warn(field, msg):
         ''' Print validation warning message. '''
 
-        print(f'row#={rownum}, id={id}, {msg}')
+        print(f'row#={rownum}, id={id}, {field} field {msg}')
 
     # Open input file for reading and output file for writing
     with open(sys.argv[1]) as ihandle, open(sys.argv[2], 'w') as ohandle:
@@ -31,6 +38,8 @@ if __name__ == '__main__':
         for rownum, row in enumerate(reader, start=1):
 
             for field in fieldnames:
+                new_value = row[field]
+
                 if field == 'id':
                     id = row['id']
 
@@ -46,15 +55,14 @@ if __name__ == '__main__':
                             raise ValueError(f'not unique: {id}')
 
                         all_ids.add(id)
-                        row['id'] = id
+                        new_value = id
 
                     except ValueError as err:
                         id = "?"
-                        warn(f'id column: {err}')
+                        warn(f'id', str(err))
                         is_valid = False
 
                 else:
-                    new_value = row[field]
 
                     # Replace Control character K (represents multiple values)
                     # with PIPE
@@ -73,12 +81,18 @@ if __name__ == '__main__':
                     # Remove trailing PIPE in a field
                     new_value = p_trailingpipe.sub('', new_value)
 
-                    # Remove in-between spaces in instrumentation
-                    if field == 'instrumentation':
-                        new_value = ','.join(e.strip() for e in
-                                             new_value.split(','))
+                if field == 'title':
+                    if new_value == "":
+                        new_value = "missing title"
+                        warn('title', 'is empty')
+                        is_valid = False
 
-                    row[field] = new_value
+                if field == 'instrumentation':
+                    # Remove in-between spaces in instrumentation
+                    new_value = ','.join(e.strip() for e in
+                                            new_value.split(','))
+
+                row[field] = new_value
 
             writer.writerow(row)
 
