@@ -23,14 +23,9 @@ RUN mkdir -p /apps/solr/ && \
 # Add the data to be loaded
 ADD data.csv /tmp/data.csv
 
-# Add and run cleanup.sh
-ADD scripts/cleanup.sh /tmp/cleanup.sh
-RUN chmod 755 /tmp/cleanup.sh
-RUN cd /tmp && ./cleanup.sh data.csv add-header
-
 # Add and run cleanup.py
 ADD scripts/cleanup.py /tmp/cleanup.py
-RUN cd /tmp && mv clean.csv clean.csv.bak && python3 cleanup.py clean.csv.bak clean.csv
+RUN cd /tmp && python3 cleanup.py data.csv clean.csv
 
 # Switch back to solr user
 USER solr
