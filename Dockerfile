@@ -1,15 +1,16 @@
+FROM python:3.8 as cleaner
+
+# Add the data to be loaded
+ADD data.csv /tmp/data.csv
+
+# Add and run cleanup.py
+ADD scripts/cleanup.py /tmp/cleanup.py
+RUN cd /tmp && python cleanup.py data.csv clean.csv
+
+
 FROM solr:8.1.1 as builder
 
-# Switch to root user
 USER root
-
-# Install xmlstarlet and Python
-# (dos2unix, Python, and csvkit are used by scripts/cleanup.sh)
-RUN apt-get update -y && \
-    apt-get install -y xmlstarlet && \
-    apt-get install -y dos2unix && \
-    apt-get install -y python3-dev python-dev python-pip python-setuptools build-essential && \
-    pip install csvkit
 
 # Set the SOLR_HOME directory env variable
 ENV SOLR_HOME=/apps/solr/data
@@ -20,15 +21,10 @@ RUN mkdir -p /apps/solr/ && \
     wget --directory-prefix=/apps/solr/data/lib "https://maven.lib.umd.edu/nexus/repository/central/joda-time/joda-time/2.2/joda-time-2.2.jar" && \
     chown -R solr:0 "$SOLR_HOME"
 
-# Add the data to be loaded
-ADD data.csv /tmp/data.csv
-
-# Add and run cleanup.py
-ADD scripts/cleanup.py /tmp/cleanup.py
-RUN cd /tmp && python3 cleanup.py data.csv clean.csv
-
 # Switch back to solr user
 USER solr
+
+COPY --from=cleaner /tmp/clean.csv /tmp/clean.csv
 
 # Create the "scpa-scores" core
 RUN /opt/solr/bin/solr start && \
@@ -43,7 +39,8 @@ RUN /opt/solr/bin/solr start && sleep 3 && \
     curl -v "http://localhost:8983/solr/scpa-scores/update/csv?update.chain=script&commit=true&f.instrumentation.split=true&f.instrumentation.separator=,&f.special.split=true&f.special.separator=|" \
     --data-binary @/tmp/clean.csv -H 'Content-type:text/csv; charset=utf-8' && \
     /opt/solr/bin/solr stop
-    
+
+
 FROM solr:8.1.1-slim
 
 ENV SOLR_HOME=/apps/solr/data
