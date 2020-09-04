@@ -980,7 +980,6 @@
          on each Update Request
       -->
       <lst name="defaults">
-        <str name="update.chain">script</str>
         <bool name="commit">true</bool>
 
         <bool name="f.instrumentation.split">true</bool>
@@ -988,17 +987,17 @@
 
         <bool name="f.special.split">true</bool>
         <str name="f.special.separator">|</str>
-    </lst>
+
+        <bool name="f.instrumentation_dictionary.split">true</bool>
+        <str name="f.instrumentation_dictionary.separator">,</str>
+
+        <bool name="f.instrumentation_dictionary_full.split">true</bool>
+        <str name="f.instrumentation_dictionary_full.separator">,</str>
+
+        <bool name="f.instrumentation_dictionary_full_with_alt.split">true</bool>
+        <str name="f.instrumentation_dictionary_full_with_alt.separator">,</str>
+      </lst>
   </requestHandler>
-
-  <updateRequestProcessorChain name="script">
-    <processor class="solr.StatelessScriptUpdateProcessorFactory">
-      <str name="script">update-script.js</str>
-    </processor>
-
-    <processor class="solr.LogUpdateProcessorFactory" />
-    <processor class="solr.RunUpdateProcessorFactory" />
-  </updateRequestProcessorChain>
 
   <!-- Solr Cell Update Request Handler
 
