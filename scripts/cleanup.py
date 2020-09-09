@@ -197,20 +197,17 @@ p_inst = re.compile(r'([\w-]+?) *\( *([0-9]+|ens|opt) *\)')
 def inst_sort_key(obj):
     '''
     Sort instruments by:
-    0 - without alternatives, eg, "pno", with a numeric count
+    0 - without alternatives
     1 - alternatives with counts other than 1
     2 - alternatives with all counts of 1
-    3 - without alternatives, with count of ensemble or optional
     '''
 
-    if len(obj) == 1 and isinstance(obj[0][1], int):
+    if len(obj) == 1:
         return 0
     elif len(obj) > 1 and any(s[1] != 1 for s in obj):
         return 1
-    elif len(obj) > 1:
-        return 2
     else:
-        return 3
+        return 2
 
 
 def parse_inst(inst):
@@ -249,8 +246,9 @@ def parse_inst_list(value):
     Parse the list of instruments w/ alternatives in the instrumentation field.
     '''
 
-    parsed = [[parse_inst(i.strip()) for i in alt.strip().split('|')]
-              for alt in value.split(',')]
+    parsed = [alt.strip() for alt in value.split(',')]
+    parsed = [[parse_inst(i.strip()) for i in alt.split('|')]
+              for alt in parsed if alt != ""]
 
     # Sort the instrument list
     return sorted(parsed, key=inst_sort_key)
@@ -297,38 +295,96 @@ def get_instrument_fields(new_value):
     # alternatives on '|'.
     inst_values = parse_inst_list(new_value)
 
-    # Track cumulative counts per instrument
-    counts = {}
+    # Get unique instrument codes, in order
+    sorted_insts = []
 
     # Iterate over the instrument list
     for alt in inst_values:
 
         display_name = []
 
-        # Iterate over the alternatives
-        for inst, count in alt:
+        # Get list of unique instruments in the alternatives list
+        insts = []
+        for inst, _ in alt:
+            if inst not in insts:
+                insts.append(inst)
+            if inst not in sorted_insts:
+                sorted_insts.append(inst)
 
+        # Iterate over the instruments
+        for inst in insts:
+
+            # Get the instrument full name
             name = get_inst_dict(inst)
-            name_with_count = get_name_with_count(name, count)
 
-            display_name.append(name_with_count)
-
-            if name not in counts:
+            if name not in id:
                 # Add the id facet (only once per instrument)
                 id.append(name)
-                counts[name] = count
-            else:
-                if isinstance(counts[name], int) and isinstance(count, int):
-                    counts[name] += count
-                else:
-                    counts[name] = count
 
-            name_with_idf_count = get_name_with_count(name, counts[name])
+            # Get the alternative counts for this instrument
+            inst_counts = [i[1] for i in alt if i[0] == inst]
 
-            idf.append(get_idf(name, counts[name], name_with_idf_count))
+            # Get the display names (idfwa) for this instrument
+            for count in inst_counts:
+                display_name.append(get_name_with_count(name, count))
 
-        # Add the display name
+        # Add the display names
         idfwa.append(' OR '.join(display_name))
+
+    # Iterate over the instruments in their sorted order
+    for sorted_inst in sorted_insts:
+
+        counts = [0]
+        all_counts = set()
+
+        # Iterate over the instrument list
+        for alt in inst_values:
+
+            # Get list of unique instruments in the alternatives list
+            insts = []
+            for inst, _ in alt:
+                if inst not in insts:
+                    insts.append(inst)
+
+            if sorted_inst in insts:
+
+                # Get the alternative counts for this instrument
+                inst_counts = [i[1] for i in alt if i[0] == sorted_inst]
+
+                # Now determine the new cumulative counts for this instrument
+
+                if len(insts) > 1:
+                    # If there instruments other than this one, then 0 is a
+                    # possible count for this instrument
+                    inst_counts.append(0)
+
+                old_counts = list(counts)
+                new_counts = []
+                for old_count in old_counts:
+                    for count in inst_counts:
+
+                        if isinstance(count, int) and isinstance(old_count, int):
+                            new_count = old_count + count
+
+                            if new_count in all_counts:
+                                # Skip ones we've seen before
+                                continue
+
+                            new_counts.append(new_count)
+                            all_counts.add(new_count)
+                        else:
+                            new_counts = [count]
+                            all_counts.add(count)
+                counts = new_counts
+
+        # Get the instrument full name
+        name = get_inst_dict(sorted_inst)
+
+        for count in all_counts:
+            if count != 0:
+                name_with_idf_count = get_name_with_count(name, count)
+
+                idf.append(get_idf(name, count, name_with_idf_count))
 
     return id, idf, idfwa
 
@@ -470,6 +526,9 @@ class Test(TestCase):
         self.assertEqual(parse_inst_list('cl, bsn'),
                          [[('cl', 1)], [('bsn', 1)]])
 
+        self.assertEqual(parse_inst_list('cl,, bsn,'),
+                         [[('cl', 1)], [('bsn', 1)]])
+
         self.assertEqual(parse_inst_list('cl-bb (4)|cl-bb (2), cl-alt, cl-bs'),
                          [[('cl-alt', 1)], [('cl-bs', 1)],
                           [('cl-bb', 4), ('cl-bb', 2)]])
@@ -478,9 +537,10 @@ class Test(TestCase):
                          [[('pno', 1)], [('cl', 2), ('cl', 3)],
                           [('cl', 1), ('vln', 1)]])
 
-        self.assertEqual(parse_inst_list('pno(ens),cl|sax,cl(2)'),
-                         [[('cl', 2)], [('cl', 1), ('sax', 1)],
-                          [('pno','ensemble')]])
+        self.assertEqual(parse_inst_list('cl, woodwinds(ens), perc'),
+                         [[('cl', 1)], [('woodwinds', 'ensemble')],
+                          [('perc', 1)]])
+
 
     def test_get_inst_dict(self):
         self.assertEqual(get_inst_dict('foo'), 'foo')
@@ -516,29 +576,166 @@ class Test(TestCase):
 
         self.assertEqual(idfwa, ["1 oboe", "1 clarinet", "1 bassoon"])
 
-        id, idf, idfwa = get_instrument_fields('pno(ens),cl|sax,cl(2)')
+        # 00002292
+        id, idf, idfwa = get_instrument_fields('cl, cl(2)')
 
-        self.assertEqual(id, ['clarinet', 'saxophone', 'piano'])
+        self.assertEqual(id, ['clarinet'])
 
-        self.assertEqual(idf, ['clarinet002::2 clarinet',
-                               'clarinet003::3 clarinet',
-                               'saxophone001::1 saxophone',
-                               'pianoensemble::piano [ensemble]'])
+        self.assertEqual(set(idf),
+                         set(['clarinet001::1 clarinet',
+                              'clarinet003::3 clarinet']))
 
-        self.assertEqual(idfwa, ['2 clarinet', '1 clarinet OR 1 saxophone',
-                                 'piano [ensemble]'])
+        self.assertEqual(idfwa, ['1 clarinet', '2 clarinet'])
 
+        # 00011023
         id, idf, idfwa = \
             get_instrument_fields('strings(2)|strings(3)|woodwinds(2)|woodwinds(3)')
 
-        self.assertEqual(id, ['strings', 'woodwinds'])
+        self.assertEqual(id, ['string instruments', 'woodwind instruments'])
 
-        self.assertEqual(idf, ['string instruments002::2 string instruments',
-                               'string instruments003::3 string instruments',
-                               'woodwind instruments002::2 woodwind instruments',
-                               'woodwind instruments003::3 woodwind instruments'])
+        self.assertEqual(set(idf),
+                         set(['string instruments002::2 string instruments',
+                              'string instruments003::3 string instruments',
+                              'woodwind instruments002::2 woodwind instruments',
+                              'woodwind instruments003::3 woodwind instruments']))
 
         self.assertEqual(idfwa, ['2 string instruments OR 3 string instruments OR 2 woodwind instruments OR 3 woodwind instruments'])
+
+        # 00001122
+        id, idf, idfwa = get_instrument_fields('cl(3)|cl(2), hrn-bsst')
+
+        self.assertEqual(id, ['hrn-bsst', 'clarinet'])
+
+        self.assertEqual(set(idf),
+                         set(['hrn-bsst001::1 hrn-bsst',
+                              'clarinet003::3 clarinet',
+                              'clarinet002::2 clarinet']))
+
+        self.assertEqual(idfwa, ['1 hrn-bsst', '3 clarinet OR 2 clarinet'])
+
+        # 00001202
+        id, idf, idfwa = \
+            get_instrument_fields('fl(3)|cl(3), ob(opt), cl|cl-alt, bsn|cl-bs, pno(opt)')
+
+        self.assertEqual(id, ['oboe', 'piano', 'flute', 'clarinet',
+                              'alto clarinet', 'bassoon', 'bass clarinet'])
+
+        self.assertEqual(set(idf),
+                         set(['oboeoptional::oboe [optional]',
+                              'pianooptional::piano [optional]',
+                              'flute003::3 flute',
+                              'clarinet003::3 clarinet',
+                              'clarinet001::1 clarinet',
+                              'clarinet004::4 clarinet',
+                              'alto clarinet001::1 alto clarinet',
+                              'bassoon001::1 bassoon',
+                              'bass clarinet001::1 bass clarinet']))
+
+        self.assertEqual(idfwa, ['oboe [optional]',
+                                 'piano [optional]',
+                                 '3 flute OR 3 clarinet',
+                                 '1 clarinet OR 1 alto clarinet',
+                                 '1 bassoon OR 1 bass clarinet'])
+
+        # 00004248
+        id, idf, idfwa = get_instrument_fields('cl|cl(2)|cl(3)')
+
+        self.assertEqual(id, ['clarinet'])
+
+        self.assertEqual(set(idf),
+                         set(['clarinet001::1 clarinet',
+                              'clarinet002::2 clarinet',
+                              'clarinet003::3 clarinet']))
+
+        self.assertEqual(idfwa, ['1 clarinet OR 2 clarinet OR 3 clarinet'])
+
+
+        # 00000056
+        id, idf, idfwa = get_instrument_fields('fl(2), cl|fl, ob, cl')
+
+        self.assertEqual(id, ['flute', 'oboe', 'clarinet'])
+
+        self.assertEqual(set(idf),
+                         set(['flute002::2 flute',
+                              'flute003::3 flute',
+                              'oboe001::1 oboe',
+                              'clarinet001::1 clarinet',
+                              'clarinet002::2 clarinet']))
+
+        self.assertEqual(idfwa, ['2 flute',
+                                 '1 oboe',
+                                 '1 clarinet',
+                                 '1 clarinet OR 1 flute'])
+
+        # 00003573
+        id, idf, idfwa = get_instrument_fields('cl, cl(2), cl(3)')
+
+        self.assertEqual(id, ['clarinet'])
+
+        self.assertEqual(set(idf),
+                         set(['clarinet001::1 clarinet',
+                              'clarinet003::3 clarinet',
+                              'clarinet004::4 clarinet',
+                              'clarinet006::6 clarinet']))
+
+        self.assertEqual(idfwa, ['1 clarinet', '2 clarinet', '3 clarinet'])
+
+        # 00002012
+        id, idf, idfwa = \
+            get_instrument_fields('ob|fl, fl(2)|cl(2), cl, bsn|cl, perc, cl(2)')
+
+        self.assertEqual(id, ['clarinet',
+                              'percussion',
+                              'oboe',
+                              'flute',
+                              'bassoon'])
+
+        self.assertEqual(set(idf),
+                         set(['clarinet001::1 clarinet',
+                              'clarinet003::3 clarinet',
+                              'clarinet005::5 clarinet',
+                              'clarinet002::2 clarinet',
+                              'clarinet004::4 clarinet',
+                              'clarinet006::6 clarinet',
+                              'percussion001::1 percussion',
+                              'oboe001::1 oboe',
+                              'flute001::1 flute',
+                              'flute002::2 flute',
+                              'flute003::3 flute',
+                              'bassoon001::1 bassoon']))
+
+        self.assertEqual(idfwa, ['1 clarinet',
+                                 '1 percussion',
+                                 '2 clarinet',
+                                 '1 oboe OR 1 flute',
+                                 '2 flute OR 2 clarinet',
+                                 '1 bassoon OR 1 clarinet'])
+
+        # 00004647
+        id, idf, idfwa = get_instrument_fields('cl-c|cl-eb, bongos(3)|pno')
+
+        self.assertEqual(id, ['c clarinet', 'e-flat clarinet',
+                              'bongos', 'piano'])
+
+        self.assertEqual(set(idf),
+                         set(['c clarinet001::1 c clarinet',
+                              'e-flat clarinet001::1 e-flat clarinet',
+                              'bongos003::3 bongos',
+                              'piano001::1 piano']))
+
+        self.assertEqual(idfwa, ['1 c clarinet OR 1 e-flat clarinet',
+                                 '3 bongos OR 1 piano'])
+
+        # Template for additional tests
+        #
+        # id, idf, idfwa = get_instrument_fields('')
+
+        # self.assertEqual(id, )
+
+        # self.assertEqual(set(idf),
+        #                  set())
+
+        # self.assertEqual(idfwa, )
 
 
 if __name__ == '__main__':
