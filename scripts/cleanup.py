@@ -577,7 +577,8 @@ class Test(TestCase):
 
 
     def test_get_instrument_fields(self):
-        id, idf, idfwa = get_instrument_fields('ob, cl, bsn')
+        parsed = parse_inst_list('ob, cl, bsn')
+        id, idf, idfwa = get_instrument_fields(parsed)
 
         self.assertEqual(id, ["oboe", "clarinet", "bassoon"])
 
@@ -588,7 +589,8 @@ class Test(TestCase):
         self.assertEqual(idfwa, ["1 oboe", "1 clarinet", "1 bassoon"])
 
         # 00002292
-        id, idf, idfwa = get_instrument_fields('cl, cl(2)')
+        parsed = parse_inst_list('cl, cl(2)')
+        id, idf, idfwa = get_instrument_fields(parsed)
 
         self.assertEqual(id, ['clarinet'])
 
@@ -599,8 +601,8 @@ class Test(TestCase):
         self.assertEqual(idfwa, ['1 clarinet', '2 clarinet'])
 
         # 00011023
-        id, idf, idfwa = \
-            get_instrument_fields('strings(2)|strings(3)|woodwinds(2)|woodwinds(3)')
+        parsed = parse_inst_list('strings(2)|strings(3)|woodwinds(2)|woodwinds(3)')
+        id, idf, idfwa = get_instrument_fields(parsed)
 
         self.assertEqual(id, ['string instruments', 'woodwind instruments'])
 
@@ -613,7 +615,8 @@ class Test(TestCase):
         self.assertEqual(idfwa, ['2 string instruments OR 3 string instruments OR 2 woodwind instruments OR 3 woodwind instruments'])
 
         # 00001122
-        id, idf, idfwa = get_instrument_fields('cl(3)|cl(2), hrn-bsst')
+        parsed = parse_inst_list('cl(3)|cl(2), hrn-bsst')
+        id, idf, idfwa = get_instrument_fields(parsed)
 
         self.assertEqual(id, ['hrn-bsst', 'clarinet'])
 
@@ -625,8 +628,8 @@ class Test(TestCase):
         self.assertEqual(idfwa, ['1 hrn-bsst', '3 clarinet OR 2 clarinet'])
 
         # 00001202
-        id, idf, idfwa = \
-            get_instrument_fields('fl(3)|cl(3), ob(opt), cl|cl-alt, bsn|cl-bs, pno(opt)')
+        parsed = parse_inst_list('fl(3)|cl(3), ob(opt), cl|cl-alt, bsn|cl-bs, pno(opt)')
+        id, idf, idfwa = get_instrument_fields(parsed)
 
         self.assertEqual(id, ['oboe', 'piano', 'flute', 'clarinet',
                               'alto clarinet', 'bassoon', 'bass clarinet'])
@@ -649,7 +652,8 @@ class Test(TestCase):
                                  '1 bassoon OR 1 bass clarinet'])
 
         # 00004248
-        id, idf, idfwa = get_instrument_fields('cl|cl(2)|cl(3)')
+        parsed = parse_inst_list('cl|cl(2)|cl(3)')
+        id, idf, idfwa = get_instrument_fields(parsed)
 
         self.assertEqual(id, ['clarinet'])
 
@@ -662,7 +666,8 @@ class Test(TestCase):
 
 
         # 00000056
-        id, idf, idfwa = get_instrument_fields('fl(2), cl|fl, ob, cl')
+        parsed = parse_inst_list('fl(2), cl|fl, ob, cl')
+        id, idf, idfwa = get_instrument_fields(parsed)
 
         self.assertEqual(id, ['flute', 'oboe', 'clarinet'])
 
@@ -679,7 +684,8 @@ class Test(TestCase):
                                  '1 clarinet OR 1 flute'])
 
         # 00003573
-        id, idf, idfwa = get_instrument_fields('cl, cl(2), cl(3)')
+        parsed = parse_inst_list('cl, cl(2), cl(3)')
+        id, idf, idfwa = get_instrument_fields(parsed)
 
         self.assertEqual(id, ['clarinet'])
 
@@ -692,8 +698,8 @@ class Test(TestCase):
         self.assertEqual(idfwa, ['1 clarinet', '2 clarinet', '3 clarinet'])
 
         # 00002012
-        id, idf, idfwa = \
-            get_instrument_fields('ob|fl, fl(2)|cl(2), cl, bsn|cl, perc, cl(2)')
+        parsed = parse_inst_list('ob|fl, fl(2)|cl(2), cl, bsn|cl, perc, cl(2)')
+        id, idf, idfwa = get_instrument_fields(parsed)
 
         self.assertEqual(id, ['clarinet',
                               'percussion',
@@ -723,7 +729,8 @@ class Test(TestCase):
                                  '1 bassoon OR 1 clarinet'])
 
         # 00004647
-        id, idf, idfwa = get_instrument_fields('cl-c|cl-eb, bongos(3)|pno')
+        parsed = parse_inst_list('cl-c|cl-eb, bongos(3)|pno')
+        id, idf, idfwa = get_instrument_fields(parsed)
 
         self.assertEqual(id, ['c clarinet', 'e-flat clarinet',
                               'bongos', 'piano'])
@@ -738,8 +745,8 @@ class Test(TestCase):
                                  '3 bongos OR 1 piano'])
 
         # Template for additional tests
-        #
-        # id, idf, idfwa = get_instrument_fields('')
+        # parsed = parse_inst_list('')
+        # id, idf, idfwa = get_instrument_fields(parsed)
 
         # self.assertEqual(id, )
 
