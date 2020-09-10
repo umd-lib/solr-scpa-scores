@@ -247,7 +247,7 @@ def parse_inst_list(value):
     Parse the list of instruments w/ alternatives in the instrumentation field.
     '''
 
-    parsed = [alt.strip() for alt in value.split(',')]
+    parsed = [alt.strip() for alt in value.lower().split(',')]
     parsed = [[parse_inst(i.strip()) for i in alt.split('|')]
               for alt in parsed if alt != ""]
 
