@@ -281,9 +281,9 @@ def get_idf(name, count, name_with_count):
     return f'{name}{count}::{name_with_count}'
 
 
-def get_instrument_fields(new_value):
+def get_instrument_fields(inst_values):
     '''
-    Parse the instrumentation field and build new fields:
+    Build new fields from the parsed instrumentation field:
 
       instrumentation_dictionary - faceting
       instrumentation_dictionary_full - faceting (dependent)
@@ -291,10 +291,6 @@ def get_instrument_fields(new_value):
     '''
 
     id, idf, idfwa = [], [], []
-
-    # Parse the instrument list, splitting on ',' and their
-    # alternatives on '|'.
-    inst_values = parse_inst_list(new_value)
 
     # Get unique instrument codes, in order
     sorted_insts = []
@@ -479,8 +475,18 @@ def cleanup():
 
                     if new_value != "":
 
+                        # Parse the instrument list, splitting on ',' and their
+                        # alternatives on '|'.
+                        inst_values = parse_inst_list(new_value)
+
+                        # Check for known values
+                        for alt in inst_values:
+                            for inst, _ in alt:
+                                if inst not in inst_dict:
+                                    warn('instrumentation', f'unknown value {inst}')
+
                         field_id, field_idf, field_idfwa = \
-                            get_instrument_fields(new_value)
+                            get_instrument_fields(inst_values)
 
                         row['instrumentation_dictionary'] = \
                             ','.join(field_id)
