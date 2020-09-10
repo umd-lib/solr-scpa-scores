@@ -137,6 +137,7 @@ inst_dict = {
     "hrn-d": "d horn",
     "hrn-e": "e horn",
     "hrn-eb": "e-flat horn",
+    "tba": "tuba",
     "tba-bb": "b-flat tuba",
     "tba-bs": "bass tuba",
     "tba-c": "c tuba",
