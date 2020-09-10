@@ -5,6 +5,7 @@ import sys
 import re
 from unittest import TestLoader, TextTestRunner, TestCase
 from argparse import ArgumentParser, FileType
+from io import TextIOWrapper
 
 # Process a SCPA Scores Collection CSV file:
 #
@@ -399,10 +400,12 @@ def cleanup():
 
     def warn(field, msg, type='warn'):
         ''' Print validation warning message. '''
+        nonlocal rownum, id
+
         print(f'{type:5}: {rownum=}, {id=}, {field=}, {msg}')
 
     # Open CSV reader and writer
-    reader = csv.DictReader(args.infile, fieldnames=fieldnames)
+    reader = csv.DictReader(TextIOFilter(args.infile), fieldnames=fieldnames)
     writer = csv.DictWriter(args.outfile, fieldnames=fieldnames+new_fieldnames)
     writer.writeheader()
 
@@ -412,10 +415,15 @@ def cleanup():
     # Iterate over the input rows
     for rownum, row in enumerate(reader, start=1):
 
-        # Iterate over the fields in each row
+       # Iterate over the fields in each row
         for field in fieldnames:
 
             new_value = row[field]
+
+            # Ensure we have the column
+            if new_value is None:
+                error(field, "field value is missing")
+                break
 
             if field == 'id':
                 id = row['id']
@@ -512,6 +520,13 @@ def cleanup():
         sys.exit(0)
     else:
         sys.exit(1)
+
+
+class TextIOFilter(TextIOWrapper):
+    ''' Filter out the NULL characters before csv gets them and chokes. '''
+
+    def __next__(self):
+        return next(super().buffer).replace('\u0000','')
 
 
 class Test(TestCase):
