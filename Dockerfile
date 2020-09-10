@@ -5,7 +5,7 @@ ADD data.csv /tmp/data.csv
 
 # Add and run cleanup.py
 ADD scripts/cleanup.py /tmp/cleanup.py
-RUN cd /tmp && python cleanup.py data.csv clean.csv
+RUN python /tmp/cleanup.py --infile=/tmp/data.csv --outfile=/tmp/clean.csv
 
 
 FROM solr:8.1.1 as builder

@@ -4,6 +4,7 @@ import csv
 import sys
 import re
 from unittest import TestLoader, TextTestRunner, TestCase
+from argparse import ArgumentParser, FileType
 
 # Process a SCPA Scores Collection CSV file:
 #
@@ -389,126 +390,129 @@ def get_instrument_fields(inst_values):
 def cleanup():
     ''' Main loop for cleanup and validation. '''
 
-    def warn(field, msg):
+    def error(field, msg):
+        ''' Print validation error message and flag invalid. '''
+        nonlocal is_valid
+
+        is_valid = False
+        warn(field, msg, type='error')
+
+    def warn(field, msg, type='warn'):
         ''' Print validation warning message. '''
-        print(f'row#={rownum}, id={id}, {field} field {msg}')
+        print(f'{type:5}: {rownum=}, {id=}, {field=}, {msg}')
 
-    # Open input file for reading and output file for writing
-    with open(sys.argv[1]) as ihandle, open(sys.argv[2], 'w') as ohandle:
-        reader = csv.DictReader(ihandle, fieldnames=fieldnames)
-        writer = csv.DictWriter(ohandle, fieldnames=fieldnames+new_fieldnames)
-        writer.writeheader()
+    # Open CSV reader and writer
+    reader = csv.DictReader(args.infile, fieldnames=fieldnames)
+    writer = csv.DictWriter(args.outfile, fieldnames=fieldnames+new_fieldnames)
+    writer.writeheader()
 
-        is_valid = True
-        all_ids = set()
+    is_valid = True
+    all_ids = set()
 
-        # Iterate over the input rows
-        for rownum, row in enumerate(reader, start=1):
+    # Iterate over the input rows
+    for rownum, row in enumerate(reader, start=1):
 
-            # Iterate over the fields in each row
-            for field in fieldnames:
+        # Iterate over the fields in each row
+        for field in fieldnames:
 
-                new_value = row[field]
+            new_value = row[field]
 
-                if field == 'id':
-                    id = row['id']
+            if field == 'id':
+                id = row['id']
 
-                    try:
-                        id = int(id)
-                        if id < 1:
-                            raise ValueError(f'not a positive integer: {id}')
+                try:
+                    id = int(id)
+                    if id < 1:
+                        raise ValueError(f'not a positive integer: {id}')
 
-                        # Zero pad id to 8 digits
-                        id = f"{int(row['id']):08}"
+                    # Zero pad id to 8 digits
+                    id = f"{int(row['id']):08}"
 
-                        if id in all_ids:
-                            raise ValueError(f'not unique: {id}')
+                    if id in all_ids:
+                        raise ValueError(f'not unique: {id}')
 
-                        all_ids.add(id)
-                        new_value = id
+                    all_ids.add(id)
+                    new_value = id
 
-                    except ValueError as err:
-                        id = "?"
-                        warn(f'id', str(err))
-                        is_valid = False
+                except ValueError as err:
+                    id = "?"
+                    error(f'id', str(err))
 
+            else:
+
+                # Replace Control character K (represents multiple values)
+                # with PIPE
+                new_value = new_value.replace('\v', '|')
+
+                # Replace multiple PIPEs with single PIPE
+                # (To get rid of empty values in a multivalued field
+                new_value = p_multipipe.sub('|', new_value)
+
+                # Trim extra spaces between values in a multivalued field
+                new_value = p_multispace.sub('|', new_value)
+
+                # Trim extra space between fields
+                new_value = new_value.strip()
+
+                # Remove trailing PIPE in a field
+                new_value = p_trailingpipe.sub('', new_value)
+
+            if field == 'title':
+                if new_value == "":
+                    new_value = "missing title"
+                    error('title', 'is empty')
+
+            if field == 'collection':
+                if new_value in collection_dict:
+                    csd = collection_dict[new_value]
+                    cd = csd.split('::')[1]
                 else:
-
-                    # Replace Control character K (represents multiple values)
-                    # with PIPE
-                    new_value = new_value.replace('\v', '|')
-
-                    # Replace multiple PIPEs with single PIPE
-                    # (To get rid of empty values in a multivalued field
-                    new_value = p_multipipe.sub('|', new_value)
-
-                    # Trim extra spaces between values in a multivalued field
-                    new_value = p_multispace.sub('|', new_value)
-
-                    # Trim extra space between fields
-                    new_value = new_value.strip()
-
-                    # Remove trailing PIPE in a field
-                    new_value = p_trailingpipe.sub('', new_value)
-
-                if field == 'title':
-                    if new_value == "":
-                        new_value = "missing title"
-                        warn('title', 'is empty')
-                        is_valid = False
-
-                if field == 'collection':
-                    if new_value in collection_dict:
-                        csd = collection_dict[new_value]
-                        cd = csd.split('::')[1]
-                    else:
-                        csd, cd = '', ''
-                        if new_value != "":
-                            warn('collection', f'unknown value {new_value}')
-                            is_valid = False
-
-                    # add new fields
-                    row['collection_dictionary'] = cd
-                    row['collection_sorted_dictionary'] = csd
-
-                if field == 'instrumentation':
-
+                    csd, cd = '', ''
                     if new_value != "":
+                        error('collection', f'unknown value: {new_value}')
 
-                        # Parse the instrument list, splitting on ',' and their
-                        # alternatives on '|'.
-                        inst_values = parse_inst_list(new_value)
+                # add new fields
+                row['collection_dictionary'] = cd
+                row['collection_sorted_dictionary'] = csd
 
-                        # Check for known values
-                        for alt in inst_values:
-                            for inst, _ in alt:
-                                if inst not in inst_dict:
-                                    warn('instrumentation', f'unknown value {inst}')
+            if field == 'instrumentation':
 
-                        field_id, field_idf, field_idfwa = \
-                            get_instrument_fields(inst_values)
+                if new_value != "":
 
-                        row['instrumentation_dictionary'] = \
-                            ','.join(field_id)
+                    # Parse the instrument list, splitting on ',' and their
+                    # alternatives on '|'.
+                    inst_values = parse_inst_list(new_value)
 
-                        row['instrumentation_dictionary_full'] = \
-                            ','.join(field_idf)
+                    # Check for known values
+                    for alt in inst_values:
+                        for inst, _ in alt:
+                            if inst not in inst_dict:
+                                warn('instrumentation',
+                                     f'unknown value: {inst}')
 
-                        row['instrumentation_dictionary_full_with_alt'] = \
-                            ','.join(field_idfwa)
+                    field_id, field_idf, field_idfwa = \
+                        get_instrument_fields(inst_values)
+
+                    row['instrumentation_dictionary'] = \
+                        ','.join(field_id)
+
+                    row['instrumentation_dictionary_full'] = \
+                        ','.join(field_idf)
+
+                    row['instrumentation_dictionary_full_with_alt'] = \
+                        ','.join(field_idfwa)
 
 
-                row[field] = new_value
+            row[field] = new_value
 
-            writer.writerow(row)
+        writer.writerow(row)
 
     # Exit with error code if validation failed
-    # TODO: enable this once we want to enforce validation
-    #
-    # if is_valid:
-    #     sys.exit(0)
-    # else:
-    #     sys.exit(1)
+    if is_valid or not args.enforcing:
+        sys.exit(0)
+    else:
+        sys.exit(1)
+
 
 class Test(TestCase):
 
@@ -746,10 +750,28 @@ class Test(TestCase):
 
 
 if __name__ == '__main__':
+    # Setup command line arguments
+    parser = ArgumentParser()
+
+    parser.add_argument("-i", "--infile", required=True,
+                        type=FileType('r', encoding='UTF-8'),
+                        help="CSV input file")
+
+    parser.add_argument("-o", "--outfile", required=True,
+                        type=FileType('w', encoding='UTF-8'),
+                        help="CSV output file")
+
+    parser.add_argument("-e", "--enforcing", action="store_true",
+                        help='enforce failed validation or unit tests by ' +
+                             'exiting with a status code of 1')
+
+    # Process command line arguments
+    args = parser.parse_args()
+
     # Run the tests
     suite = TestLoader().loadTestsFromTestCase(Test)
     result = TextTestRunner().run(suite)
-    if result.errors or result.failures:
+    if args.enforcing and (result.errors or result.failures):
         sys.exit(1)
 
     # Run the CSV validation and cleanup
