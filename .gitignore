@@ -1,3 +1,5 @@
 # Ignore the data directory
 data
 uploads
+scripts/__pycache__
+tmp
