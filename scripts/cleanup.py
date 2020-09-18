@@ -284,9 +284,9 @@ def get_instrument_fields(inst_values):
     '''
     Build new fields from the parsed instrumentation field:
 
-      instrumentation_dictionary - faceting
-      instrumentation_dictionary_full - faceting (dependent)
-      instrumentation_dictionary_full_with_alt - display
+      id    -> instrumentation_dictionary - faceting
+      idf   -> instrumentation_dictionary_full - faceting (dependent)
+      idfwa -> instrumentation_dictionary_full_with_alt - display
     '''
 
     id, idf, idfwa = [], [], []
@@ -300,19 +300,20 @@ def get_instrument_fields(inst_values):
     # Iterate over the instrument list
     for alt in inst_values:
 
+        # Display name for idfwa
         display_name = []
 
         # Get list of unique instruments in the alternatives list
-        insts = []
+        alt_insts = []
         for inst, _ in alt:
-            if inst not in insts:
-                insts.append(inst)
+            if inst not in alt_insts:
+                alt_insts.append(inst)
             if inst not in sorted_insts:
                 sorted_insts.append(inst)
                 all_counts[inst] = set()
 
         # Iterate over the instruments
-        for inst in insts:
+        for inst in alt_insts:
 
             # Get the instrument full name
             name = get_inst_dict(inst)
@@ -324,11 +325,11 @@ def get_instrument_fields(inst_values):
             # Get the alternative counts for this instrument
             inst_counts = [i[1] for i in alt if i[0] == inst]
 
-            if len(insts) > 1:
+            if len(alt_insts) > 1:
                 inst_counts.append(0)
 
             # Get the display names (idfwa) for this instrument
-            if len(insts) > 1 and len(all_counts) == 0:
+            if len(alt_insts) > 1 and len(all_counts) == 0:
                 old_counts = [0]
             else:
                 old_counts = list(all_counts[inst])
