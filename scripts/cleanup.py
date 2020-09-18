@@ -199,18 +199,15 @@ p_inst = re.compile(r'([\w-]+?) *\( *([0-9]+|ens|opt) *\)')
 
 def inst_sort_key(obj):
     '''
-    Sort instruments by:
+    Sort (stable) instruments by:
     0 - without alternatives
-    1 - alternatives with counts other than 1
-    2 - alternatives with all counts of 1
+    1 - with alternatives
     '''
 
     if len(obj) == 1:
         return 0
-    elif len(obj) > 1 and any(s[1] != 1 for s in obj):
-        return 1
     else:
-        return 2
+        return 1
 
 
 def parse_inst(inst):
@@ -297,6 +294,9 @@ def get_instrument_fields(inst_values):
     # Get unique instrument codes, in order
     sorted_insts = []
 
+    # All counts for idf, per instrument
+    all_counts = {}
+
     # Iterate over the instrument list
     for alt in inst_values:
 
@@ -309,6 +309,7 @@ def get_instrument_fields(inst_values):
                 insts.append(inst)
             if inst not in sorted_insts:
                 sorted_insts.append(inst)
+                all_counts[inst] = set()
 
         # Iterate over the instruments
         for inst in insts:
@@ -323,63 +324,37 @@ def get_instrument_fields(inst_values):
             # Get the alternative counts for this instrument
             inst_counts = [i[1] for i in alt if i[0] == inst]
 
+            if len(insts) > 1:
+                inst_counts.append(0)
+
             # Get the display names (idfwa) for this instrument
+            if len(insts) > 1 and len(all_counts) == 0:
+                old_counts = [0]
+            else:
+                old_counts = list(all_counts[inst])
+
             for count in inst_counts:
-                display_name.append(get_name_with_count(name, count))
+                if count != 0:
+                    display_name.append(get_name_with_count(name, count))
+
+                # Update all_counts for idf
+                if isinstance(count, int) and len(old_counts) > 0:
+                    for old_count in old_counts:
+                        if isinstance(old_count, int):
+                            all_counts[inst].add(count + old_count)
+                else:
+                    all_counts[inst].add(count)
 
         # Add the display names
         idfwa.append(' OR '.join(display_name))
 
     # Iterate over the instruments in their sorted order
-    for sorted_inst in sorted_insts:
-
-        counts = [0]
-        all_counts = set()
-
-        # Iterate over the instrument list
-        for alt in inst_values:
-
-            # Get list of unique instruments in the alternatives list
-            insts = []
-            for inst, _ in alt:
-                if inst not in insts:
-                    insts.append(inst)
-
-            if sorted_inst in insts:
-
-                # Get the alternative counts for this instrument
-                inst_counts = [i[1] for i in alt if i[0] == sorted_inst]
-
-                # Now determine the new cumulative counts for this instrument
-
-                if len(insts) > 1:
-                    # If there instruments other than this one, then 0 is a
-                    # possible count for this instrument
-                    inst_counts.append(0)
-
-                old_counts = list(counts)
-                new_counts = []
-                for old_count in old_counts:
-                    for count in inst_counts:
-
-                        if isinstance(count, int) and isinstance(old_count, int):
-                            new_count = old_count + count
-
-                            if new_count in all_counts:
-                                # Skip ones we've seen before
-                                continue
-
-                            new_counts.append(new_count)
-                            all_counts.add(new_count)
-                        else:
-                            new_counts = [count]
-                            all_counts.add(count)
-                counts = new_counts
+    for inst in sorted_insts:
 
         # Get the instrument full name
-        name = get_inst_dict(sorted_inst)
+        name = get_inst_dict(inst)
 
-        for count in all_counts:
+        for count in all_counts[inst]:
             if count != 0:
                 name_with_idf_count = get_name_with_count(name, count)
 
@@ -559,10 +534,6 @@ class Test(TestCase):
                          [[('cl-alt', 1)], [('cl-bs', 1)],
                           [('cl-bb', 4), ('cl-bb', 2)]])
 
-        self.assertEqual(parse_inst_list('pno,cl|vln,cl(2)|cl(3)'),
-                         [[('pno', 1)], [('cl', 2), ('cl', 3)],
-                          [('cl', 1), ('vln', 1)]])
-
         self.assertEqual(parse_inst_list('cl, woodwinds(ens), perc'),
                          [[('cl', 1)], [('woodwinds', 'ensemble')],
                           [('perc', 1)]])
@@ -597,9 +568,10 @@ class Test(TestCase):
 
         self.assertEqual(id, ["oboe", "clarinet", "bassoon"])
 
-        self.assertEqual(idf, ["oboe001::1 oboe",
-                               "clarinet001::1 clarinet",
-                               "bassoon001::1 bassoon"])
+        self.assertEqual(set(idf),
+                         set(["oboe001::1 oboe",
+                              "clarinet001::1 clarinet",
+                              "bassoon001::1 bassoon"]))
 
         self.assertEqual(idfwa, ["1 oboe", "1 clarinet", "1 bassoon"])
 
