@@ -26,13 +26,17 @@ new_fieldnames = ['collection_dictionary', 'collection_sorted_dictionary',
 
 collection_dict = {
     "ICA": "001::International Clarinet Association (ICA) Score Collection",
-    "NACWPI": "002::National Association of College Wind and Percussion Instructors (NACWPI) Score Collection",
+    "NACWPI":
+        "002::National Association of College " +
+        "Wind and Percussion Instructors (NACWPI) Score Collection",
     "Stevens": "003::Milton Stevens Collection",
     "ABA": "004::American Bandmasters Association (ABA) Score Collection",
-    "ABA - Banda Mexicana": "005::ABA - J.E. Roach Banda Mexicana Music Collection",
+    "ABA - Banda Mexicana":
+        "005::ABA - J.E. Roach Banda Mexicana Music Collection",
     "ABA - William Hill": "006::ABA - William Hill Collection",
     "ABA - King": "007::ABA - Karl King Scores",
-    "ABA - Mayhew Lake": '008::ABA - Mayhew Lake "Symphony in Gold" Collection',
+    "ABA - Mayhew Lake":
+        '008::ABA - Mayhew Lake "Symphony in Gold" Collection',
     "ABA - Reed": "009::ABA - Alfred Reed Collection",
     "ABA - Star Music Co": "010::ABA - Star Music Company Collection",
     "20th/21st Century Consort": "011::20th/21st Century Consort Collection",
@@ -233,7 +237,7 @@ def parse_inst(inst):
                 count = 'ensemble'
             else:
                 count = int(count)
-        except:
+        except Exception:
             count = 1
     else:
         code, count = inst, 1
@@ -252,6 +256,7 @@ def parse_inst_list(value):
 
     # Sort the instrument list
     return sorted(parsed, key=inst_sort_key)
+
 
 def get_inst_dict(inst):
     ''' Get the full name of the inst code from inst_dict. '''
@@ -292,7 +297,7 @@ def get_instrument_fields(inst_values):
     id, idf, idfwa = [], [], []
 
     # Get unique instrument codes, in order
-    sorted_insts = []
+    all_insts = []
 
     # All counts for idf, per instrument
     all_counts = {}
@@ -308,8 +313,8 @@ def get_instrument_fields(inst_values):
         for inst, _ in alt:
             if inst not in alt_insts:
                 alt_insts.append(inst)
-            if inst not in sorted_insts:
-                sorted_insts.append(inst)
+            if inst not in all_insts:
+                all_insts.append(inst)
                 all_counts[inst] = set()
 
         # Iterate over the instruments
@@ -350,7 +355,7 @@ def get_instrument_fields(inst_values):
         idfwa.append(' OR '.join(display_name))
 
     # Iterate over the instruments in their sorted order
-    for inst in sorted_insts:
+    for inst in all_insts:
 
         # Get the instrument full name
         name = get_inst_dict(inst)
@@ -391,7 +396,7 @@ def cleanup():
     # Iterate over the input rows
     for rownum, row in enumerate(reader, start=1):
 
-       # Iterate over the fields in each row
+        # Iterate over the fields in each row
         for field in fieldnames:
 
             new_value = row[field]
@@ -486,7 +491,6 @@ def cleanup():
                     row['instrumentation_dictionary_full_with_alt'] = \
                         ','.join(field_idfwa)
 
-
             row[field] = new_value
 
         writer.writerow(row)
@@ -502,7 +506,7 @@ class TextIOFilter(TextIOWrapper):
     ''' Filter out the NULL characters before csv gets them and chokes. '''
 
     def __next__(self):
-        return next(super().buffer).replace('\u0000','')
+        return next(super().buffer).replace('\u0000', '')
 
 
 class Test(TestCase):
@@ -539,7 +543,6 @@ class Test(TestCase):
                          [[('cl', 1)], [('woodwinds', 'ensemble')],
                           [('perc', 1)]])
 
-
     def test_get_inst_dict(self):
         self.assertEqual(get_inst_dict('foo'), 'foo')
         self.assertEqual(get_inst_dict('any'), 'any instrument')
@@ -561,7 +564,6 @@ class Test(TestCase):
 
         self.assertEqual(get_idf('flute', 'ensemble', 'flute [ensemble]'),
                          'fluteensemble::flute [ensemble]')
-
 
     def test_get_instrument_fields(self):
         parsed = parse_inst_list('ob, cl, bsn')
@@ -589,7 +591,8 @@ class Test(TestCase):
         self.assertEqual(idfwa, ['1 clarinet', '2 clarinet'])
 
         # 00011023
-        parsed = parse_inst_list('strings(2)|strings(3)|woodwinds(2)|woodwinds(3)')
+        parsed = parse_inst_list('strings(2)|strings(3)|woodwinds(2)|' +
+                                 'woodwinds(3)')
         id, idf, idfwa = get_instrument_fields(parsed)
 
         self.assertEqual(id, ['string instruments', 'woodwind instruments'])
@@ -597,10 +600,14 @@ class Test(TestCase):
         self.assertEqual(set(idf),
                          set(['string instruments002::2 string instruments',
                               'string instruments003::3 string instruments',
-                              'woodwind instruments002::2 woodwind instruments',
-                              'woodwind instruments003::3 woodwind instruments']))
+                              'woodwind instruments002::2 woodwind ' +
+                              'instruments',
+                              'woodwind instruments003::3 woodwind ' +
+                              'instruments']))
 
-        self.assertEqual(idfwa, ['2 string instruments OR 3 string instruments OR 2 woodwind instruments OR 3 woodwind instruments'])
+        self.assertEqual(idfwa, ['2 string instruments OR 3 string ' +
+                                 'instruments OR 2 woodwind instruments OR ' +
+                                 '3 woodwind instruments'])
 
         # 00001122
         parsed = parse_inst_list('cl(3)|cl(2), hrn-bsst')
@@ -616,7 +623,8 @@ class Test(TestCase):
         self.assertEqual(idfwa, ['1 hrn-bsst', '3 clarinet OR 2 clarinet'])
 
         # 00001202
-        parsed = parse_inst_list('fl(3)|cl(3), ob(opt), cl|cl-alt, bsn|cl-bs, pno(opt)')
+        parsed = parse_inst_list('fl(3)|cl(3), ob(opt), cl|cl-alt,' +
+                                 'bsn|cl-bs, pno(opt)')
         id, idf, idfwa = get_instrument_fields(parsed)
 
         self.assertEqual(id, ['oboe', 'piano', 'flute', 'clarinet',
@@ -651,7 +659,6 @@ class Test(TestCase):
                               'clarinet003::3 clarinet']))
 
         self.assertEqual(idfwa, ['1 clarinet OR 2 clarinet OR 3 clarinet'])
-
 
         # 00000056
         parsed = parse_inst_list('fl(2), cl|fl, ob, cl')
