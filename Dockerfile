@@ -1,10 +1,13 @@
 FROM python:3.8 as cleaner
 
-# Add the data to be loaded
+# Add the files
 ADD data.csv /tmp/data.csv
-
-# Add and run cleanup.py
 ADD scripts/cleanup.py /tmp/cleanup.py
+
+# Run the code tests
+RUN python -m unittest /tmp/cleanup.py
+
+# Run the data cleanup and validation
 RUN python /tmp/cleanup.py --infile=/tmp/data.csv --outfile=/tmp/clean.csv
 
 

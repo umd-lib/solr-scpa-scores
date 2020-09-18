@@ -762,11 +762,5 @@ if __name__ == '__main__':
     # Process command line arguments
     args = parser.parse_args()
 
-    # Run the tests
-    suite = TestLoader().loadTestsFromTestCase(Test)
-    result = TextTestRunner().run(suite)
-    if args.enforcing and (result.errors or result.failures):
-        sys.exit(1)
-
     # Run the CSV validation and cleanup
     cleanup()
