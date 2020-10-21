@@ -1,11 +1,20 @@
+FROM python:3.8 as cleaner
+
+# Add the files
+ADD data.csv /tmp/data.csv
+ADD scripts/cleanup.py /tmp/cleanup.py
+
+# Run the code tests
+RUN python -m unittest /tmp/cleanup.py
+
+# Run the data cleanup and validation
+RUN python /tmp/cleanup.py --enforcing \
+    --infile=/tmp/data.csv --outfile=/tmp/clean.csv
+
+
 FROM solr:8.1.1 as builder
 
-# Switch to root user
 USER root
-
-# Install xmlstarlet
-RUN apt-get update -y && \
-    apt-get install -y xmlstarlet
 
 # Set the SOLR_HOME directory env variable
 ENV SOLR_HOME=/apps/solr/data
@@ -19,23 +28,26 @@ RUN mkdir -p /apps/solr/ && \
 # Switch back to solr user
 USER solr
 
+COPY --from=cleaner /tmp/clean.csv /tmp/clean.csv
+
 # Create the "scpa-scores" core
 RUN /opt/solr/bin/solr start && \
     /opt/solr/bin/solr create_core -c scpa-scores && \
     /opt/solr/bin/solr stop
+
 # Replace the schema file
 COPY conf /apps/solr/data/scpa-scores/conf/
 
-# Add the data to be loaded
-ADD data.csv /tmp/data.csv
-
 # Load the data to scpa-scores core
-RUN /opt/solr/bin/solr start && sleep 3 && \
-    curl 'http://localhost:8983/solr/scpa-scores/update?commit=true' -H 'Content-Type: text/xml' --data-binary '<delete><query>*:*</query></delete>' && \
-    curl -v "http://localhost:8983/solr/scpa-scores/update/csv?commit=true&f.instrumentation.split=true&f.instrumentation.separator=,&f.instrumentation_dictionary.split=true&f.instrumentation_dictionary.separator=,&f.instrumentation_dictionary_full.split=true&f.instrumentation_dictionary_full.separator=,&f.instrumentation_dictionary_full_with_alt.split=true&f.instrumentation_dictionary_full_with_alt.separator=,&f.special.split=true&f.special.separator=," \
-    --data-binary @/tmp/data.csv -H 'Content-type:text/csv; charset=utf-8' && \
+RUN /opt/solr/bin/solr start && \
+    sleep 3 && \
+    curl --verbose \
+       "http://localhost:8983/solr/scpa-scores/update" \
+       --data-binary @/tmp/clean.csv \
+       --header 'Content-type:text/csv; charset=utf-8' && \
     /opt/solr/bin/solr stop
-    
+
+
 FROM solr:8.1.1-slim
 
 ENV SOLR_HOME=/apps/solr/data
