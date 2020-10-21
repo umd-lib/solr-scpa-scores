@@ -118,7 +118,7 @@
    <field name="ensemble_description" type="umd_default" indexed="true" stored="true"/>
    <field name="ensemble_size" type="umd_default" indexed="true" stored="true"/>
    <field name="fair_use" type="boolean" indexed="true" stored="true" />
-   <field name="instrumentation" type="umd_dont_tokenize" indexed="true" stored="true"  multiValued="true"/>
+   <field name="instrumentation" type="umd_dont_tokenize" indexed="true" stored="true"  multiValued="false"/>
    <field name="instrumentation_analyzed" type="umd_default" indexed="true" stored="false"  multiValued="true"/>
    <field name="instrumentation_dictionary" type="umd_dont_tokenize" indexed="true" stored="true"  multiValued="true"/>
    <field name="instrumentation_dictionary_full" type="umd_dont_tokenize" indexed="true" stored="true"  multiValued="true"/>
