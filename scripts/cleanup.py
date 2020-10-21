@@ -17,7 +17,7 @@ from io import TextIOWrapper
 fieldnames = ['id', 'composer', 'title', 'imprint', 'instrumentation',
               'collation', 'additional_info', 'collection', 'call_number',
               'duration', 'solo_difficulty', 'difficulty', 'pages',
-              'ensemble_description', 'ensemble_size', 'fair_use', 'special']
+              'ensemble_description', 'special', 'ensemble_size', 'fair_use']
 
 new_fieldnames = ['collection_dictionary', 'collection_sorted_dictionary',
                   'instrumentation_dictionary',
@@ -46,7 +46,15 @@ collection_dict = {
     "Lynn Steele": "015::Lynn Steele Collection",
     "George Tremblay": "016::George Tremblay Collection",
     "Philip Gordon": "017::Philip Gordon Papers",
-    "VdGSA": "018::Viola da Gamba Society of America Archives"
+    "VdGSA": "018::Viola da Gamba Society of America Archives",
+    "Francois Loup scores collection": "019::Francois Loup scores collection",
+    "Frank Simon": "020::Frank Simon",
+    "ICA (Sidney Forrest collection)": "021::Francois Loup scores collection",
+    "Judith Davidoff Collection of Contemporary Compositions for Viols":
+        "022::Judith Davidoff Collection of " +
+        "Contemporary Compositions for Viols",
+    "Maryland Sheet Music": "023::Maryland Sheet Music",
+    "Tobani score collection": "024::Tobani score collection"
 }
 
 # Instrument code to label map
@@ -396,6 +404,10 @@ def cleanup():
     # Iterate over the input rows
     for rownum, row in enumerate(reader, start=1):
 
+        # Skip the header
+        if 'Column1' in row['id']:
+            continue
+
         # Iterate over the fields in each row
         for field in fieldnames:
 
@@ -410,12 +422,15 @@ def cleanup():
                 id = row['id']
 
                 try:
+                    # strip out BOM
+                    id = id.replace('\ufeff', '')
+
                     id = int(id)
                     if id < 1:
                         raise ValueError(f'not a positive integer: {id}')
 
                     # Zero pad id to 8 digits
-                    id = f"{int(row['id']):08}"
+                    id = f"{int(id):08}"
 
                     if id in all_ids:
                         raise ValueError(f'not unique: {id}')

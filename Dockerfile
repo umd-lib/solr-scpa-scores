@@ -8,7 +8,8 @@ ADD scripts/cleanup.py /tmp/cleanup.py
 RUN python -m unittest /tmp/cleanup.py
 
 # Run the data cleanup and validation
-RUN python /tmp/cleanup.py --infile=/tmp/data.csv --outfile=/tmp/clean.csv
+RUN python /tmp/cleanup.py --enforcing \
+    --infile=/tmp/data.csv --outfile=/tmp/clean.csv
 
 
 FROM solr:8.1.1 as builder
