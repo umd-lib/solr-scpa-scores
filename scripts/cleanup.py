@@ -49,7 +49,7 @@ collection_dict = {
     "VdGSA": "018::Viola da Gamba Society of America Archives",
     "Francois Loup scores collection": "019::Francois Loup scores collection",
     "Frank Simon": "020::Frank Simon",
-    "ICA (Sidney Forrest collection)": "021::Francois Loup scores collection",
+    "ICA (Sidney Forrest collection)": "021::ICA (Sidney Forrest collection)",
     "Judith Davidoff Collection of Contemporary Compositions for Viols":
         "022::Judith Davidoff Collection of " +
         "Contemporary Compositions for Viols",
