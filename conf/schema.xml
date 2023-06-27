@@ -101,6 +101,8 @@
    <field name="id" type="umd_dont_tokenize" indexed="true" stored="true" required="true" multiValued="false" />
    <field name="call_number" type="umd_default" indexed="false" stored="true" multiValued="false" />
    <field name="title" type="umd_default" indexed="true" stored="true" multiValued="false"/>
+   <copyField source="title" dest="title_untokenized" />
+   <field name="title_untokenized" type="umd_dont_tokenize" indexed="true" stored="true" multiValued="false"/>
    <field name="composer" type="umd_default" indexed="true" stored="true"/>
    <field name="imprint" type="umd_default" indexed="true" stored="true"/>
    <field name="collation" type="umd_default" indexed="true" stored="true"/>
