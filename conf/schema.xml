@@ -102,10 +102,10 @@
    <field name="call_number" type="umd_default" indexed="false" stored="true" multiValued="false" />
    <field name="title" type="umd_default" indexed="true" stored="true" multiValued="false"/>
    <copyField source="title" dest="title_untokenized" />
-   <field name="title_untokenized" type="umd_dont_tokenize" indexed="true" stored="true" multiValued="false"/>
+   <field name="title_untokenized" type="umd_dont_tokenize_insensitive" indexed="true" stored="true" multiValued="false"/>
    <field name="composer" type="umd_default" indexed="true" stored="true"/>
    <copyField source="composer" dest="composer_untokenized" />
-   <field name="composer_untokenized" type="umd_dont_tokenize" indexed="true" stored="true"/>
+   <field name="composer_untokenized" type="umd_dont_tokenize_insensitive" indexed="true" stored="true"/>
    <field name="imprint" type="umd_default" indexed="true" stored="true"/>
    <field name="collation" type="umd_default" indexed="true" stored="true"/>
    <field name="additional_info" type="umd_default" indexed="true" stored="true"/>
@@ -987,6 +987,16 @@
       </analyzer>
     </fieldType>
 
+    <fieldType name="umd_dont_tokenize_insensitive" class="solr.TextField" positionIncrementGap="100">
+      <analyzer type="index">
+        <tokenizer class="solr.KeywordTokenizerFactory"/>
+        <filter class="solr.LowerCaseFilterFactory" />
+      </analyzer>
+      <analyzer type="query">
+        <tokenizer class="solr.KeywordTokenizerFactory"/>
+        <filter class="solr.LowerCaseFilterFactory" />
+      </analyzer>
+    </fieldType>
     <!-- 1995-12-31T23:59:59Z -->
 
     <fieldType name="umd_year_range" class="solr.TrieDateField" omitNorms="true">
