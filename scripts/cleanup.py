@@ -25,36 +25,36 @@ new_fieldnames = ['collection_dictionary', 'collection_sorted_dictionary',
                   'instrumentation_dictionary_full_with_alt']
 
 collection_dict = {
-    "ICA": "001::International Clarinet Association (ICA) Score Collection",
+    "ICA": "International Clarinet Association (ICA) Score Collection",
     "NACWPI":
-        "002::National Association of College " +
+        "National Association of College " +
         "Wind and Percussion Instructors (NACWPI) Score Collection",
-    "Stevens": "003::Milton Stevens Collection",
-    "ABA": "004::American Bandmasters Association (ABA) Score Collection",
+    "Stevens": "Milton Stevens Collection",
+    "ABA": "American Bandmasters Association (ABA) Score Collection",
     "ABA - Banda Mexicana":
-        "005::ABA - J.E. Roach Banda Mexicana Music Collection",
-    "ABA - William Hill": "006::ABA - William Hill Collection",
-    "ABA - King": "007::ABA - Karl King Scores",
+        "ABA - J.E. Roach Banda Mexicana Music Collection",
+    "ABA - William Hill": "ABA - William Hill Collection",
+    "ABA - King": "ABA - Karl King Scores",
     "ABA - Mayhew Lake":
-        '008::ABA - Mayhew Lake "Symphony in Gold" Collection',
-    "ABA - Reed": "009::ABA - Alfred Reed Collection",
-    "ABA - Star Music Co": "010::ABA - Star Music Company Collection",
-    "20th/21st Century Consort": "011::20th/21st Century Consort Collection",
-    "Stephen Albert": "012::Stephen Albert Collection",
-    "Harold Brown": "013::Harold Brown Collection",
-    "CMP": "014::Contemporary Music Project (NAfME/MENC) Scores",
-    "Lynn Steele": "015::Lynn Steele Collection",
-    "George Tremblay": "016::George Tremblay Collection",
-    "Philip Gordon": "017::Philip Gordon Papers",
-    "VdGSA": "018::Viola da Gamba Society of America Archives",
-    "Francois Loup scores collection": "019::Francois Loup scores collection",
-    "Frank Simon": "020::Frank Simon",
-    "ICA (Sidney Forrest collection)": "021::ICA (Sidney Forrest collection)",
+        'ABA - Mayhew Lake "Symphony in Gold" Collection',
+    "ABA - Reed": "ABA - Alfred Reed Collection",
+    "ABA - Star Music Co": "ABA - Star Music Company Collection",
+    "20th/21st Century Consort": "20th/21st Century Consort Collection",
+    "Stephen Albert": "Stephen Albert Collection",
+    "Harold Brown": "Harold Brown Collection",
+    "CMP": "Contemporary Music Project (NAfME/MENC) Scores",
+    "Lynn Steele": "Lynn Steele Collection",
+    "George Tremblay": "George Tremblay Collection",
+    "Philip Gordon": "Philip Gordon Papers",
+    "VdGSA": "Viola da Gamba Society of America Archives",
+    "Francois Loup scores collection": "Francois Loup scores collection",
+    "Frank Simon": "Frank Simon",
+    "ICA (Sidney Forrest collection)": "ICA (Sidney Forrest collection)",
     "Judith Davidoff Collection of Contemporary Compositions for Viols":
-        "022::Judith Davidoff Collection of " +
+        "Judith Davidoff Collection of " +
         "Contemporary Compositions for Viols",
-    "Maryland Sheet Music": "023::Maryland Sheet Music",
-    "Tobani score collection": "024::Tobani score collection"
+    "Maryland Sheet Music": "Maryland Sheet Music",
+    "Tobani score collection": "Tobani score collection"
 }
 
 # Instrument code to label map
@@ -469,7 +469,8 @@ def cleanup():
             if field == 'collection':
                 if new_value in collection_dict:
                     csd = collection_dict[new_value]
-                    cd = csd.split('::')[1]
+                    # cd = csd.split('::')[1]
+                    cd = csd
                 else:
                     csd, cd = '', ''
                     if new_value != "":

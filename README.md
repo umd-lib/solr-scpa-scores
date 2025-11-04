@@ -17,14 +17,21 @@ the Solr database.
 To build the Docker image named "solr-scpa-scores":
 
 ``` bash
-> docker build -t solr-scpa-scores .
+docker build -t solr-scpa-scores .
 ```
 
 To run the freshly built Docker container on port 8983:
 
 ``` bash
-> docker run -it --rm -p 8983:8983 solr-scpa-scores
+docker run -it --rm -p 8983:8983 solr-scpa-scores
 ```
+
+When building the Docker image for deployment, do the following:
+
+```
+docker buildx build . --builder=kube -t docker.lib.umd.edu/solr-scpa-scores:latest --push
+```
+Replace *latest* with the current tag.
 
 ## License
 
